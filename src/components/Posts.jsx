@@ -1,37 +1,12 @@
-import { useState, useEffect } from 'react';
-import { API_URL } from '../config';
+import { posts } from '../data/posts';
 import './Posts.css';
 
 function Posts({ category }) {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const url = category 
-          ? `${API_URL}/posts?category=${category}`
-          : `${API_URL}/posts`;
-        const response = await fetch(url);
-        const data = await response.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, [category]);
-
-  if (loading) {
-    return <div className="loading">Loading posts...</div>;
-  }
+  const categoryPosts = category ? posts[category] : Object.values(posts).flat();
 
   return (
     <div className="posts-grid">
-      {posts.map((post) => (
+      {categoryPosts.map((post) => (
         <article key={post.id} className="post-card">
           {post.image_url && (
             <img src={post.image_url} alt={post.title} className="post-image" />
