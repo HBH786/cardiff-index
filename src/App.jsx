@@ -9,7 +9,7 @@ import Itineraries from './pages/Itineraries';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/">
       <div className="app">
         <Navbar />
         <Routes>
@@ -19,6 +19,7 @@ function App() {
           <Route path="/accommodation" element={<Accommodation />} />
           <Route path="/transport" element={<Transport />} />
           <Route path="/itineraries" element={<Itineraries />} />
+          <Route path="*" element={<Home />} />
         </Routes>
       </div>
     </Router>

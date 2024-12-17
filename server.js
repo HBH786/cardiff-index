@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { createClient } from '@libsql/client';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,42 +9,43 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const db = createClient({
-  url: process.env.DB_URL,
-  authToken: process.env.DB_TOKEN
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Post Schema
+const postSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  category: { type: String, required: true },
+  image_url: String,
+  created_at: { type: Date, default: Date.now }
 });
 
-// Initialize database
-await db.execute(`
-  CREATE TABLE IF NOT EXISTS posts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    category TEXT NOT NULL,
-    image_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`);
+const Post = mongoose.model('Post', postSchema);
 
-// Zapier webhook endpoint
+// Create post
 app.post('/api/posts', async (req, res) => {
   try {
     const { title, content, category, image_url } = req.body;
     
-    // Validate required fields
     if (!title || !content || !category) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Insert post into database
-    const result = await db.execute({
-      sql: 'INSERT INTO posts (title, content, category, image_url) VALUES (?, ?, ?, ?)',
-      args: [title, content, category, image_url]
+    const post = new Post({
+      title,
+      content,
+      category,
+      image_url
     });
+
+    await post.save();
 
     res.status(201).json({
       message: 'Post created successfully',
-      postId: result.lastInsertRowid
+      postId: post._id
     });
   } catch (error) {
     console.error('Error creating post:', error);
@@ -56,18 +57,13 @@ app.post('/api/posts', async (req, res) => {
 app.get('/api/posts', async (req, res) => {
   try {
     const { category } = req.query;
-    let posts;
+    let query = category ? { category } : {};
     
-    if (category) {
-      posts = await db.execute({
-        sql: 'SELECT * FROM posts WHERE category = ? ORDER BY created_at DESC',
-        args: [category]
-      });
-    } else {
-      posts = await db.execute('SELECT * FROM posts ORDER BY created_at DESC');
-    }
+    const posts = await Post.find(query)
+      .sort({ created_at: -1 })
+      .exec();
 
-    res.json(posts.rows);
+    res.json(posts);
   } catch (error) {
     console.error('Error fetching posts:', error);
     res.status(500).json({ error: 'Failed to fetch posts' });
