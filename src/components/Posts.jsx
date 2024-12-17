@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config';
 import './Posts.css';
 
 function Posts({ category }) {
@@ -9,8 +10,8 @@ function Posts({ category }) {
     const fetchPosts = async () => {
       try {
         const url = category 
-          ? `/api/posts?category=${category}`
-          : '/api/posts';
+          ? `${API_URL}/posts?category=${category}`
+          : `${API_URL}/posts`;
         const response = await fetch(url);
         const data = await response.json();
         setPosts(data);
